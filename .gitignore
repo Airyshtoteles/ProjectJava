@@ -1,0 +1,19 @@
+# Maven
+/target/
+
+# IDEs
+/.idea/
+*.iml
+/.classpath
+/.project
+/.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Credentials (ensure not committed if created)
+*.properties.local
