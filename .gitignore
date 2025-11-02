@@ -17,3 +17,7 @@ Thumbs.db
 
 # Credentials (ensure not committed if created)
 *.properties.local
+
+# Local SQLite database file
+frs.db
+*.db

@@ -2,19 +2,51 @@
 
 Aplikasi desktop untuk pengisian Formulir Rencana Studi (FRS) dengan peran Mahasiswa, Dosen PA, dan Admin Prodi.
 
-## Fitur awal yang tersedia
+## Fitur yang tersedia
 - Login role-based (Mahasiswa/Dosen/Admin)
-- Dashboard Mahasiswa: melihat profil, daftar mata kuliah satu semester, memilih MK, menghitung total SKS, simpan draft, ajukan FRS
-- Kerangka Dashboard Dosen/Admin untuk pengembangan lanjutan
+- Dashboard Mahasiswa:
+   - Profil
+   - Isi FRS: pilih MK semester aktif, total SKS dinamis, Simpan Draft, Ajukan
+   - Status: lihat status FRS dan riwayat persetujuan, Cetak FRS Final (PDF) saat DISETUJUI
+- Dashboard Dosen:
+   - Daftar pengajuan FRS bimbingan (MENUNGGU)
+   - Filter cepat (NIM/Nama)
+   - Export Excel dan Print daftar
+   - Setujui/Tolak dengan catatan
+- Dashboard Admin:
+   - Pengaturan semester aktif dan periode FRS (enforce pada saat Ajukan)
+   - Master Mahasiswa/Dosen/Mata Kuliah (CRUD) dengan picker User & Dosen Wali
 - Validasi backend: batas SKS (min 12, max 24), cek bentrok jadwal sederhana, cek prasyarat sederhana
-- Logging aktivitas (login, simpan, ajukan)
+- Logging aktivitas (login, simpan, ajukan, approve/reject)
 
 ## Persyaratan
 - JDK 17 (atau kompatibel)
 - Maven 3.9+
-- MySQL Server 8+
+- Salah satu database:
+   - MySQL Server 8+ (default lama), atau
+   - SQLite (tanpa server) + sqlite3 CLI untuk inisialisasi (opsional)
 
 ## Setup Database
+Anda bisa memilih MySQL atau SQLite. Secara default konfigurasi sekarang menggunakan SQLite agar lebih simpel.
+
+### Opsi A: SQLite (disarankan untuk lokal)
+1. Set konfigurasi ke SQLite di `src/main/resources/config/db.properties`:
+   ```properties
+   db.type=sqlite
+   db.sqlite.path=frs.db   # lokasi file DB (boleh absolute path)
+   ```
+2. Inisialisasi skema dan data contoh (butuh sqlite3 CLI):
+   ```powershell
+   cd "c:\Users\Hype\Documents\Pemrograman Desktop\Project\AplikasiFRSOnline"
+   # Jika sqlite3 ada di PATH
+   sqlite3 .\frs.db ".read .\src\main\resources\sql\sqlite-schema.sql"
+   sqlite3 .\frs.db ".read .\src\main\resources\sql\sqlite-seed.sql"
+   # Jika sqlite3 tidak di PATH, gunakan path penuh, misal:
+   "&C:\\Program Files\\SQLite\\sqlite3.exe" .\frs.db ".read .\src\main\resources\sql\sqlite-schema.sql"
+   "&C:\\Program Files\\SQLite\\sqlite3.exe" .\frs.db ".read .\src\main\resources\sql\sqlite-seed.sql"
+   ```
+
+### Opsi B: MySQL
 1. Buat database dan tabel menggunakan skrip berikut:
    - `src/main/resources/sql/schema.sql`
    - `src/main/resources/sql/seed.sql`
@@ -28,11 +60,11 @@ Aplikasi desktop untuk pengisian Formulir Rencana Studi (FRS) dengan peran Mahas
    mysql -u root -p < .\src\main\resources\sql\seed.sql
    ```
 
+   Catatan: `schema.sql` menambahkan UNIQUE KEY untuk memastikan satu akun `user` hanya terkait ke satu Mahasiswa/Dosen. Jika menjalankan ulang `schema.sql` pada database yang sudah ada, dan constraint sudah ada, perintah `ALTER TABLE` bisa gagal. Jalankan secara manual hanya sekali atau sesuaikan sesuai kondisi database Anda.
+
 2. Atur koneksi database di `src/main/resources/config/db.properties`:
-   - `db.host` bisa diisi IP LAN untuk mode jaringan lokal (mis. `192.168.1.10`)
-   - `db.port` default `3306`
-   - `db.name` default `frs_db`
-   - `db.user` dan `db.password` sesuai MySQL Anda
+   - Untuk SQLite: `db.type=sqlite`, `db.sqlite.path=frs.db`
+   - Untuk MySQL: `db.type=mysql` dan set `db.host`, `db.port`, `db.name`, `db.user`, `db.password`
 
 ## Build & Run
 1. Build aplikasi:
@@ -65,12 +97,12 @@ Catatan: Password tersimpan menggunakan SHA-256 untuk demo.
 - `ui/DosenDashboardFrame` — Kerangka dashboard dosen
 - `ui/AdminDashboardFrame` — Kerangka dashboard admin
 
-## Roadmap Pengembangan
-- Dosen: daftar pengajuan FRS bimbingan, setujui/tolak + catatan, riwayat per mahasiswa
-- Admin: CRUD master data (mahasiswa/dosen/mata_kuliah), set semester aktif & periode FRS, kunci FRS, reset password
-- Laporan: PDF (PDFBox) dan Excel (Apache POI)
-- Notifikasi sederhana (mis. status FRS berubah)
-- Penguatan validasi prasyarat berdasarkan riwayat kelulusan MK
+## Roadmap Lanjutan
+- Dosen: pencarian lanjutan (semester/status), export ke CSV
+- Admin: kunci FRS per mahasiswa/angkatan, reset password
+- Laporan tambahan dan desain template PDF lebih rapi
+- Notifikasi sederhana (mis. saat status FRS berubah)
+- Validasi prasyarat berbasis riwayat kelulusan MK
 
 ## Keamanan
 - Gunakan user/password MySQL yang tidak default di produksi

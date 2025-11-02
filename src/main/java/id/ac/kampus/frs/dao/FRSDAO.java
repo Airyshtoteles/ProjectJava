@@ -108,4 +108,54 @@ public class FRSDAO {
         f.setLockedByAdmin(rs.getBoolean("locked_by_admin"));
         return f;
     }
+
+    public void setStatus(int idFrs, Status status) throws SQLException {
+        String sql = "UPDATE frs SET status=? WHERE id_frs=?";
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, status.name());
+            ps.setInt(2, idFrs);
+            ps.executeUpdate();
+        }
+    }
+
+    public FRS findById(int idFrs) throws SQLException {
+        String sql = "SELECT * FROM frs WHERE id_frs=?";
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idFrs);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return mapFrs(rs);
+            }
+        }
+        return null;
+    }
+
+    public static class PengajuanRow {
+        public int idFrs; public String nim; public String nama; public int semester; public int totalSks; public String status;
+    }
+
+    public List<PengajuanRow> listPengajuanForDosen(String nidn) throws SQLException {
+        String sql = "SELECT f.id_frs, f.nim, m.nama, f.semester, f.total_sks, f.status " +
+                "FROM frs f JOIN mahasiswa m ON f.nim=m.nim " +
+                "WHERE m.nidn_wali=? AND f.status='MENUNGGU' ORDER BY f.tanggal_pengajuan DESC";
+        List<PengajuanRow> list = new ArrayList<>();
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, nidn);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    PengajuanRow r = new PengajuanRow();
+                    r.idFrs = rs.getInt(1);
+                    r.nim = rs.getString(2);
+                    r.nama = rs.getString(3);
+                    r.semester = rs.getInt(4);
+                    r.totalSks = rs.getInt(5);
+                    r.status = rs.getString(6);
+                    list.add(r);
+                }
+            }
+        }
+        return list;
+    }
 }

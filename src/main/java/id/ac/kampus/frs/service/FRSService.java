@@ -6,6 +6,7 @@ import id.ac.kampus.frs.dao.MataKuliahDAO;
 import id.ac.kampus.frs.model.FRS;
 import id.ac.kampus.frs.model.MataKuliah;
 import id.ac.kampus.frs.util.ActivityLogger;
+import id.ac.kampus.frs.dao.SettingsDAO;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -15,6 +16,7 @@ public class FRSService {
     private final FRSDAO frsDAO = new FRSDAO();
     private final MataKuliahDAO mkDAO = new MataKuliahDAO();
     private final JadwalDAO jadwalDAO = new JadwalDAO();
+    private final SettingsDAO settingsDAO = new SettingsDAO();
 
     private final int MIN_SKS = 12;
     private final int MAX_SKS = 24;
@@ -36,6 +38,10 @@ public class FRSService {
     }
 
     public void submit(FRS frs, List<String> selectedKodeMk, int idUser) throws Exception {
+        // Enforce settings: only allow submit when FRS period is active
+        if (!settingsDAO.isWithinWindow()) {
+            throw new IllegalStateException("Periode FRS tidak aktif saat ini");
+        }
         validate(frs.getNim(), selectedKodeMk);
         int total = hitungTotalSks(selectedKodeMk);
         frsDAO.replaceDetails(frs.getIdFrs(), selectedKodeMk);

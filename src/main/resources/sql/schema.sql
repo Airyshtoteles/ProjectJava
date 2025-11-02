@@ -20,7 +20,9 @@ CREATE TABLE IF NOT EXISTS mahasiswa (
   jurusan VARCHAR(100) NOT NULL,
   semester INT NOT NULL DEFAULT 1,
   id_user INT NOT NULL,
-  FOREIGN KEY (id_user) REFERENCES user(id_user) ON DELETE CASCADE ON UPDATE CASCADE
+  nidn_wali VARCHAR(20) NULL,
+  FOREIGN KEY (id_user) REFERENCES user(id_user) ON DELETE CASCADE ON UPDATE CASCADE,
+  FOREIGN KEY (nidn_wali) REFERENCES dosen(nidn) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
 -- Dosen
@@ -98,5 +100,18 @@ CREATE TABLE IF NOT EXISTS log_aktivitas (
 -- Indexes for performance
 CREATE INDEX idx_user_role ON user(role);
 CREATE INDEX idx_mhs_semester ON mahasiswa(semester);
+-- Ensure a user account is linked to at most one mahasiswa/dosen
+ALTER TABLE mahasiswa ADD UNIQUE KEY uk_mahasiswa_id_user (id_user);
+ALTER TABLE dosen ADD UNIQUE KEY uk_dosen_id_user (id_user);
 CREATE INDEX idx_frs_nim_semester ON frs(nim, semester);
 CREATE INDEX idx_jadwal_kode_mk ON jadwal(kode_mk);
+
+-- Settings (singleton row)
+CREATE TABLE IF NOT EXISTS settings (
+  id INT PRIMARY KEY DEFAULT 1,
+  semester_aktif INT NOT NULL DEFAULT 1,
+  frs_aktif TINYINT(1) NOT NULL DEFAULT 1,
+  tanggal_mulai DATETIME NULL,
+  tanggal_selesai DATETIME NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;

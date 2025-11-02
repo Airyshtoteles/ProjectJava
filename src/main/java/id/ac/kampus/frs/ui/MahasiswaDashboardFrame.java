@@ -5,6 +5,11 @@ import id.ac.kampus.frs.model.Mahasiswa;
 import id.ac.kampus.frs.model.MataKuliah;
 import id.ac.kampus.frs.model.User;
 import id.ac.kampus.frs.service.FRSService;
+import id.ac.kampus.frs.dao.FRSDAO;
+import id.ac.kampus.frs.dao.PersetujuanFRSDAO;
+import id.ac.kampus.frs.dao.MataKuliahDAO;
+import id.ac.kampus.frs.model.PersetujuanFRS;
+import id.ac.kampus.frs.util.PdfUtil;
 
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
@@ -20,6 +25,10 @@ public class MahasiswaDashboardFrame extends JFrame {
     private JTable tblMk;
     private MkTableModel mkModel;
     private JLabel lblTotalSks;
+    private JLabel lblStatus;
+    private JTable tblRiwayat;
+    private HistoryModel historyModel;
+    private JButton btnCetak;
 
     private FRS currentFrs;
 
@@ -30,15 +39,19 @@ public class MahasiswaDashboardFrame extends JFrame {
         setSize(900, 600);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setJMenuBar(buildMenuBar());
         buildUI();
         loadData();
     }
 
     private void buildUI() {
+        setLayout(new BorderLayout());
+        add(UiUtil.header("Dashboard Mahasiswa", mhs.getNama() + " • NIM: " + mhs.getNim()), BorderLayout.NORTH);
         JTabbedPane tabs = new JTabbedPane();
         tabs.addTab("Profil", buildProfilPanel());
         tabs.addTab("Isi FRS", buildFrsPanel());
-        add(tabs);
+        tabs.addTab("Status", buildStatusPanel());
+        add(tabs, BorderLayout.CENTER);
     }
 
     private JPanel buildProfilPanel() {
@@ -76,12 +89,41 @@ public class MahasiswaDashboardFrame extends JFrame {
         return root;
     }
 
+    private JPanel buildStatusPanel() {
+        JPanel p = new JPanel(new BorderLayout());
+        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        lblStatus = new JLabel("Status: -");
+        btnCetak = new JButton("Cetak FRS Final (PDF)");
+        btnCetak.setEnabled(false);
+        btnCetak.addActionListener(e -> onCetakPdf());
+        top.add(lblStatus);
+        top.add(Box.createHorizontalStrut(16));
+        top.add(btnCetak);
+        p.add(top, BorderLayout.NORTH);
+
+        historyModel = new HistoryModel();
+        tblRiwayat = new JTable(historyModel);
+        p.add(new JScrollPane(tblRiwayat), BorderLayout.CENTER);
+        return p;
+    }
+
+    private JMenuBar buildMenuBar() {
+        JMenuBar mb = new JMenuBar();
+        JMenu mAkun = new JMenu("Akun");
+        JMenuItem miUbah = new JMenuItem("Ajukan Ubah Password...");
+        miUbah.addActionListener(e -> new ChangePasswordDialog(this, user.getIdUser()).setVisible(true));
+        mAkun.add(miUbah);
+        mb.add(mAkun);
+        return mb;
+    }
+
     private void loadData() {
         try {
             currentFrs = frsService.getOrCreateDraft(mhs.getNim(), mhs.getSemester());
             List<MataKuliah> mks = frsService.listMkSemester(mhs.getSemester());
             mkModel.setData(mks);
             recalcTotal();
+            refreshStatusUI();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Gagal memuat data", JOptionPane.ERROR_MESSAGE);
         }
@@ -91,6 +133,7 @@ public class MahasiswaDashboardFrame extends JFrame {
         try {
             frsService.saveDraft(currentFrs, mkModel.getSelectedKode(), user.getIdUser());
             JOptionPane.showMessageDialog(this, "Draft FRS disimpan.");
+            refreshStatusUI();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Gagal menyimpan", JOptionPane.ERROR_MESSAGE);
         }
@@ -100,8 +143,50 @@ public class MahasiswaDashboardFrame extends JFrame {
         try {
             frsService.submit(currentFrs, mkModel.getSelectedKode(), user.getIdUser());
             JOptionPane.showMessageDialog(this, "FRS diajukan ke Dosen PA.");
+            refreshStatusUI();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Gagal mengajukan", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void refreshStatusUI() {
+        try {
+            // reload current FRS data and history
+            FRSDAO frsDAO = new FRSDAO();
+            var frs = frsDAO.findById(currentFrs.getIdFrs());
+            if (frs != null) currentFrs = frs;
+            lblStatus.setText("Status: " + currentFrs.getStatus());
+            btnCetak.setEnabled(currentFrs.getStatus() == FRS.Status.DISETUJUI);
+
+            PersetujuanFRSDAO pdao = new PersetujuanFRSDAO();
+            var list = pdao.listByFrs(currentFrs.getIdFrs());
+            historyModel.setData(list);
+        } catch (Exception e) {
+            // ignore
+        }
+    }
+
+    private void onCetakPdf() {
+        if (currentFrs.getStatus() != FRS.Status.DISETUJUI) return;
+        JFileChooser fc = new JFileChooser();
+        fc.setSelectedFile(new java.io.File("FRS-" + mhs.getNim() + "-S" + currentFrs.getSemester() + ".pdf"));
+        if (fc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            java.io.File f = fc.getSelectedFile();
+            try {
+                FRSDAO frsDAO = new FRSDAO();
+                MataKuliahDAO mkDAO = new MataKuliahDAO();
+                var dets = frsDAO.listDetails(currentFrs.getIdFrs());
+                List<MataKuliah> mks = new ArrayList<>();
+                int total = 0;
+                for (var d : dets) {
+                    MataKuliah mk = mkDAO.findByKode(d.getKodeMk());
+                    if (mk != null) { mks.add(mk); total += mk.getSks(); }
+                }
+                PdfUtil.exportFrs(f, "Semester " + currentFrs.getSemester(), mhs.getNim(), mhs.getNama(), currentFrs.getSemester(), mks, total, currentFrs.getStatus().name());
+                JOptionPane.showMessageDialog(this, "PDF tersimpan: " + f.getAbsolutePath());
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, ex.getMessage(), "Gagal cetak PDF", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 
@@ -160,6 +245,25 @@ public class MahasiswaDashboardFrame extends JFrame {
         private class Row {
             boolean selected; MataKuliah mk;
             Row(boolean s, MataKuliah m) { selected = s; mk = m; }
+        }
+    }
+
+    private static class HistoryModel extends AbstractTableModel {
+        private final String[] cols = {"Waktu","NIDN Dosen","Status","Catatan"};
+        private java.util.List<PersetujuanFRS> rows = new java.util.ArrayList<>();
+        public void setData(java.util.List<PersetujuanFRS> list) { this.rows = list; fireTableDataChanged(); }
+        @Override public int getRowCount() { return rows.size(); }
+        @Override public int getColumnCount() { return cols.length; }
+        @Override public String getColumnName(int column) { return cols[column]; }
+        @Override public Object getValueAt(int rowIndex, int columnIndex) {
+            var p = rows.get(rowIndex);
+            return switch (columnIndex) {
+                case 0 -> p.getWaktu();
+                case 1 -> p.getIdDosen();
+                case 2 -> p.getStatus();
+                case 3 -> p.getCatatan();
+                default -> null;
+            };
         }
     }
 }

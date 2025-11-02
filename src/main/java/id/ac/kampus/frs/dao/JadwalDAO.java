@@ -5,10 +5,18 @@ import id.ac.kampus.frs.util.DBConnection;
 
 import java.sql.*;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
 public class JadwalDAO {
+    private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("H:mm[:ss]");
+
+    private static LocalTime parseTime(String s) {
+        if (s == null) return null;
+        s = s.trim();
+        return LocalTime.parse(s, TIME_FMT);
+    }
     public List<Jadwal> listByKodeMk(String kodeMk) throws SQLException {
         String sql = "SELECT id_jadwal, kode_mk, hari, jam_mulai, jam_selesai, ruang FROM jadwal WHERE kode_mk=?";
         List<Jadwal> list = new ArrayList<>();
@@ -21,8 +29,8 @@ public class JadwalDAO {
                     j.setIdJadwal(rs.getInt("id_jadwal"));
                     j.setKodeMk(rs.getString("kode_mk"));
                     j.setHari(rs.getString("hari"));
-                    j.setJamMulai(rs.getTime("jam_mulai").toLocalTime());
-                    j.setJamSelesai(rs.getTime("jam_selesai").toLocalTime());
+                    j.setJamMulai(parseTime(rs.getString("jam_mulai")));
+                    j.setJamSelesai(parseTime(rs.getString("jam_selesai")));
                     j.setRuang(rs.getString("ruang"));
                     list.add(j);
                 }
@@ -42,10 +50,10 @@ public class JadwalDAO {
             ps.setString(2, kodeMkB);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    LocalTime aStart = rs.getTime(2).toLocalTime();
-                    LocalTime aEnd = rs.getTime(3).toLocalTime();
-                    LocalTime bStart = rs.getTime(4).toLocalTime();
-                    LocalTime bEnd = rs.getTime(5).toLocalTime();
+                    LocalTime aStart = parseTime(rs.getString(2));
+                    LocalTime aEnd = parseTime(rs.getString(3));
+                    LocalTime bStart = parseTime(rs.getString(4));
+                    LocalTime bEnd = parseTime(rs.getString(5));
                     boolean overlap = !aEnd.isBefore(bStart) && !bEnd.isBefore(aStart);
                     if (overlap) return true;
                 }

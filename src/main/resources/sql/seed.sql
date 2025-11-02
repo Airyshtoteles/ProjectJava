@@ -18,8 +18,8 @@ ON DUPLICATE KEY UPDATE nama=VALUES(nama);
 INSERT INTO user (username, password_hash, role) VALUES
 ('2201001', '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8', 'MAHASISWA')
 ON DUPLICATE KEY UPDATE role=VALUES(role);
-INSERT INTO mahasiswa (nim, nama, jurusan, semester, id_user) 
-SELECT '2201001', 'Budi Mahasiswa', 'Informatika', 3, id_user FROM user WHERE username='2201001'
+INSERT INTO mahasiswa (nim, nama, jurusan, semester, id_user, nidn_wali) 
+SELECT '2201001', 'Budi Mahasiswa', 'Informatika', 3, id_user, 'D001' FROM user WHERE username='2201001'
 ON DUPLICATE KEY UPDATE nama=VALUES(nama), jurusan=VALUES(jurusan), semester=VALUES(semester);
 
 -- Mata kuliah sample
@@ -37,3 +37,7 @@ INSERT INTO jadwal (kode_mk, hari, jam_mulai, jam_selesai, ruang) VALUES
 ('IF302', 'SENIN', '10:00:00', '11:40:00', 'R302'),
 ('IF303', 'RABU', '08:00:00', '09:40:00', 'R303')
 ON DUPLICATE KEY UPDATE ruang=VALUES(ruang);
+
+-- Default settings
+INSERT INTO settings (id, semester_aktif, frs_aktif) VALUES (1, 3, 1)
+ON DUPLICATE KEY UPDATE semester_aktif=VALUES(semester_aktif), frs_aktif=VALUES(frs_aktif);

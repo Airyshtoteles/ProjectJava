@@ -13,15 +13,16 @@ public class LoginFrame extends JFrame {
     private final AuthService authService = new AuthService();
 
     public LoginFrame() {
-        setTitle("Aplikasi FRS Online - Login");
+        setTitle("Aplikasi FRS Online • Login");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(420, 260);
+        setSize(440, 280);
         setLocationRelativeTo(null);
         buildUI();
     }
 
     private void buildUI() {
-        JPanel form = new JPanel(new GridBagLayout());
+    JPanel form = new JPanel(new GridBagLayout());
+    form.setBorder(BorderFactory.createEmptyBorder(12,16,12,16));
         GridBagConstraints gc = new GridBagConstraints();
         gc.insets = new Insets(8,8,8,8);
         gc.anchor = GridBagConstraints.WEST;
@@ -40,6 +41,9 @@ public class LoginFrame extends JFrame {
         btnLogin.addActionListener(e -> doLogin());
         gc.gridx = 1; gc.gridy = r; gc.anchor = GridBagConstraints.EAST; gc.fill = GridBagConstraints.NONE;
         form.add(btnLogin, gc);
+
+        // Make ENTER key trigger login
+        getRootPane().setDefaultButton(btnLogin);
 
         add(form);
     }
