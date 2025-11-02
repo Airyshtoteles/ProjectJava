@@ -63,9 +63,12 @@ public class LoginFrame extends JFrame {
             SwingUtilities.invokeLater(() -> {
                 dispose();
                 switch (user.getRole()) {
-                    case MAHASISWA -> new MahasiswaDashboardFrame(user, result.mahasiswa).setVisible(true);
-                    case DOSEN -> new DosenDashboardFrame(user).setVisible(true);
-                    case ADMIN -> new AdminDashboardFrame(user).setVisible(true);
+                    case MAHASISWA -> new ModernMahasiswaDashboardFrame(user, result.mahasiswa).setVisible(true);
+                    case DOSEN -> {
+                        String nidn = "dosen1".equalsIgnoreCase(user.getUsername()) ? "D001" : user.getUsername();
+                        new ModernDosenDashboardFrame(user, nidn).setVisible(true);
+                    }
+                    case ADMIN -> new ModernAdminDashboardFrame(user).setVisible(true);
                 }
             });
         } catch (Exception ex) {
