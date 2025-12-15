@@ -136,9 +136,17 @@ public class BaseDashboardFrame extends JFrame {
     }
 
     public void showPage(String key) {
-        for (Map.Entry<String, UITheme.SidebarItem> e : navItems.entrySet()) e.getValue().setActive(e.getKey().equals(key));
-        ((CardLayout) content.getLayout()).show(content, key);
-        content.fadeIn(250);
-        setPageTitle(key);
+        // Fade-out, switch, fade-in for smoother transition
+        content.fadeOut(120, () -> {
+            for (Map.Entry<String, UITheme.SidebarItem> e : navItems.entrySet()) e.getValue().setActive(e.getKey().equals(key));
+            ((CardLayout) content.getLayout()).show(content, key);
+            setPageTitle(key);
+            content.fadeIn(180);
+        });
+    }
+
+    public void setSidebarBadge(String key, int count) {
+        UITheme.SidebarItem item = navItems.get(key);
+        if (item != null) item.setBadge(count);
     }
 }

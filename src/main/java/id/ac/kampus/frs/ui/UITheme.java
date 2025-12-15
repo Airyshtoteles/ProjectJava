@@ -96,6 +96,7 @@ public final class UITheme {
     /** Sidebar item dengan hover dan highlight garis accent. */
     public static class SidebarItem extends JPanel {
         private boolean hover, active; private final JLabel label = new JLabel();
+        private int badge = 0;
         public SidebarItem(String text) {
             setLayout(new BorderLayout()); setOpaque(false);
             label.setText(text); label.setBorder(BorderFactory.createEmptyBorder(10, 16, 10, 12));
@@ -108,11 +109,26 @@ public final class UITheme {
             });
         }
         public void setActive(boolean b){ active = b; repaint(); }
+        public void setBadge(int count){ badge = Math.max(0, count); repaint(); }
         @Override protected void paintComponent(Graphics g){
             Graphics2D g2 = (Graphics2D) g.create(); UITheme.enableAA(g2);
             int w=getWidth(), h=getHeight();
             if (hover || active){ g2.setColor(new Color(92,107,192, 40)); g2.fillRect(0,0,w,h); }
             if (active){ g2.setColor(ACCENT); g2.fillRect(0,0,4,h); }
+            if (badge > 0){
+                String txt = String.valueOf(badge);
+                Font f = UITheme.uiFont(Font.BOLD, 11);
+                g2.setFont(f);
+                FontMetrics fm = g2.getFontMetrics();
+                int bw = Math.max(18, fm.stringWidth(txt) + 10);
+                int bh = 16;
+                int x = w - bw - 10;
+                int y = (h - bh) / 2;
+                g2.setColor(new Color(0x5C,0x6B,0xC0));
+                g2.fillRoundRect(x, y, bw, bh, 12, 12);
+                g2.setColor(Color.WHITE);
+                g2.drawString(txt, x + (bw - fm.stringWidth(txt))/2, y + (bh + fm.getAscent())/2 - 3);
+            }
             g2.dispose(); super.paintComponent(g);
         }
     }
