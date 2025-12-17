@@ -34,6 +34,10 @@ public class ModernMahasiswaDashboardFrame extends BaseDashboardFrame {
         GridBagConstraints gc = new GridBagConstraints();
         gc.insets = new Insets(10,10,10,10); gc.fill = GridBagConstraints.BOTH; gc.weightx = 1; gc.weighty = 0;
 
+        // Animasi Selamat Datang
+        gc.gridx = 0; gc.gridy = 0;
+        container.add(buildWelcomeAnimation(), gc);
+
         // Card info utama
         UITheme.CardPanel card = new UITheme.CardPanel(20);
         card.setLayout(new GridBagLayout());
@@ -50,13 +54,14 @@ public class ModernMahasiswaDashboardFrame extends BaseDashboardFrame {
         cc.gridx=0; cc.gridy++; card.add(label("Jurusan"), cc); cc.gridx=1; card.add(value(mhs.getJurusan()), cc);
         cc.gridx=0; cc.gridy++; card.add(label("Semester Aktif"), cc); cc.gridx=1; card.add(value(String.valueOf(mhs.getSemester())), cc);
 
-        // Tombol aksi
+        // Tombol aksi (Ganti Password)
         cc.gridx=0; cc.gridy++; cc.gridwidth=2; cc.anchor = GridBagConstraints.EAST;
-        UITheme.AnimatedButton btn = new UITheme.AnimatedButton("Start Now \uD83D\uDE80");
+        UITheme.AnimatedButton btn = new UITheme.AnimatedButton("Ganti Password");
         btn.setPreferredSize(new Dimension(180, 40));
+        btn.addActionListener(e -> new ChangePasswordDialog(this, user.getIdUser()).setVisible(true));
         card.add(btn, cc);
 
-        gc.gridx=0; gc.gridy=0; gc.weighty=0; container.add(card, gc);
+        gc.gridx=0; gc.gridy=1; gc.weighty=0; container.add(card, gc);
 
         // Card kedua (placeholder untuk info tambahan)
         UITheme.CardPanel card2 = new UITheme.CardPanel(20);
@@ -64,8 +69,35 @@ public class ModernMahasiswaDashboardFrame extends BaseDashboardFrame {
         JLabel tips = new JLabel("Tips: Isi FRS minimal 12 SKS.");
         tips.setFont(UITheme.uiFont(Font.PLAIN, 14)); tips.setForeground(UITheme.TEXT);
         card2.add(tips, BorderLayout.NORTH);
-        gc.gridy=1; gc.weighty=1; container.add(card2, gc);
+        gc.gridy=2; gc.weighty=1; container.add(card2, gc);
         return container;
+    }
+
+    private JPanel buildWelcomeAnimation() {
+        final int[] x = {-400};
+        JPanel p = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setFont(UITheme.uiFont(Font.BOLD, 24));
+                g2.setColor(UITheme.PRIMARY);
+                g2.drawString("Selamat Datang, " + mhs.getNama(), x[0], 35);
+            }
+        };
+        p.setOpaque(false);
+        p.setPreferredSize(new Dimension(600, 50));
+        Timer t = new Timer(15, e -> {
+            if (x[0] < 20) {
+                x[0] += 5;
+                p.repaint();
+            } else {
+                ((Timer)e.getSource()).stop();
+            }
+        });
+        t.start();
+        return p;
     }
 
     private JLabel label(String s){ JLabel l = new JLabel(s); l.setFont(UITheme.uiFont(Font.PLAIN, 14)); l.setForeground(new Color(0,0,0,170)); return l; }
@@ -128,24 +160,60 @@ public class ModernMahasiswaDashboardFrame extends BaseDashboardFrame {
 
     // ===== Status =====
     private JLabel lblStatus; private JTable tblHist; private HistoryModel histModel;
+    private UITheme.AnimatedButton btnCetakPdf;
+
     private JComponent buildStatusPage(){
         JPanel root = new JPanel(new BorderLayout()); root.setOpaque(false);
         UITheme.CardPanel card = new UITheme.CardPanel(20); card.setLayout(new BorderLayout());
+        
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT)); top.setOpaque(false);
         lblStatus = new JLabel("Status: -"); lblStatus.setFont(UITheme.uiFont(Font.BOLD, 14));
-        top.add(lblStatus); card.add(top, BorderLayout.NORTH);
+        top.add(lblStatus);
+        
+        btnCetakPdf = new UITheme.AnimatedButton("Cetak PDF");
+        btnCetakPdf.setPreferredSize(new Dimension(120, 30));
+        btnCetakPdf.setVisible(false);
+        btnCetakPdf.addActionListener(e -> onCetakPdf());
+        top.add(Box.createHorizontalStrut(20));
+        top.add(btnCetakPdf);
+
+        card.add(top, BorderLayout.NORTH);
         histModel = new HistoryModel(); tblHist = new JTable(histModel);
         card.add(new JScrollPane(tblHist), BorderLayout.CENTER);
         root.add(card, BorderLayout.CENTER);
         SwingUtilities.invokeLater(this::refreshStatusUI);
         return root;
     }
+
+    private void onCetakPdf() {
+        JFileChooser fc = new JFileChooser();
+        fc.setSelectedFile(new java.io.File("KSM_" + mhs.getNim() + ".pdf"));
+        if (fc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            try {
+                var frsDAO = new id.ac.kampus.frs.dao.FRSDAO();
+                var mkDAO = new id.ac.kampus.frs.dao.MataKuliahDAO();
+                var details = frsDAO.listDetails(currentFrs.getIdFrs());
+                java.util.List<id.ac.kampus.frs.model.MataKuliah> mks = new java.util.ArrayList<>();
+                for (var d : details) {
+                    var mk = mkDAO.findByKode(d.getKodeMk());
+                    if (mk != null) mks.add(mk);
+                }
+                id.ac.kampus.frs.util.PdfUtil.exportFrs(fc.getSelectedFile(), "Semester " + mhs.getSemester(), mhs.getNim(), mhs.getNama(), mhs.getSemester(), mks, currentFrs.getTotalSks(), currentFrs.getStatus().name());
+                JOptionPane.showMessageDialog(this, "PDF berhasil disimpan.");
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Gagal menyimpan PDF: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
     private void refreshStatusUI(){
         try {
             var frsDAO = new id.ac.kampus.frs.dao.FRSDAO();
             if (currentFrs == null) currentFrs = frsService.getOrCreateDraft(mhs.getNim(), mhs.getSemester());
             var latest = frsDAO.findById(currentFrs.getIdFrs()); if (latest!=null) currentFrs = latest;
             lblStatus.setText("Status: "+ currentFrs.getStatus());
+            btnCetakPdf.setVisible(currentFrs.getStatus() == id.ac.kampus.frs.model.FRS.Status.DISETUJUI);
+            
             var pdao = new id.ac.kampus.frs.dao.PersetujuanFRSDAO();
             var list = pdao.listByFrs(currentFrs.getIdFrs()); histModel.setData(list);
         } catch(Exception ignored){}
