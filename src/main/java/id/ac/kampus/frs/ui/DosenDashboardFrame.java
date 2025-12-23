@@ -120,7 +120,7 @@ public class DosenDashboardFrame extends JFrame {
                 var hr = sh.createRow(0);
                 for (int i=0;i<headers.length;i++) hr.createCell(i).setCellValue(headers[i]);
                 int r = 1;
-                for (var row : pengajuanModel.rows) {
+                for (var row : pengajuanModel.getRows()) {
                     var rr = sh.createRow(r++);
                     rr.createCell(0).setCellValue(row.idFrs);
                     rr.createCell(1).setCellValue(row.nim);

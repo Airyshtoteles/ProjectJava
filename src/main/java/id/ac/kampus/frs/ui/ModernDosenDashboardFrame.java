@@ -13,9 +13,21 @@ public class ModernDosenDashboardFrame extends BaseDashboardFrame {
         super("Dashboard Dosen");
         this.nidn = nidn;
         setUserInfo("NIDN: " + nidn + " • " + user.getUsername());
+        
+        UITheme.AnimatedButton btnNotif = new UITheme.AnimatedButton("Notifikasi");
+        btnNotif.setPreferredSize(new Dimension(100, 32));
+        btnNotif.addActionListener(e -> showNotifications());
+        headerActions.add(btnNotif, 0);
+
         registerPage("Pengajuan", "Pengajuan", buildPengajuanPage());
         showPage("Pengajuan");
         loadPengajuan();
+    }
+
+    private void showNotifications() {
+        JPopupMenu popup = new JPopupMenu();
+        popup.add(new JMenuItem("Belum ada notifikasi baru."));
+        popup.show(headerActions, 0, headerActions.getHeight());
     }
 
     private JComponent buildPengajuanPage(){
@@ -32,13 +44,50 @@ public class ModernDosenDashboardFrame extends BaseDashboardFrame {
         right.add(new JScrollPane(tblDetail), BorderLayout.CENTER);
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT)); actions.setOpaque(false);
-        UITheme.AnimatedButton approve = new UITheme.AnimatedButton("Setujui"); approve.setPreferredSize(new Dimension(120,34)); approve.addActionListener(e->onApprove());
-        UITheme.AnimatedButton reject = new UITheme.AnimatedButton("Tolak"); reject.setPreferredSize(new Dimension(120,34)); reject.addActionListener(e->onReject());
+        
+        UITheme.AnimatedButton btnPrint = new UITheme.AnimatedButton("Print");
+        btnPrint.setPreferredSize(new Dimension(80,34));
+        btnPrint.addActionListener(e -> onPrint());
+        actions.add(btnPrint);
+
+        UITheme.AnimatedButton btnPdf = new UITheme.AnimatedButton("Cetak PDF");
+        btnPdf.setPreferredSize(new Dimension(100,34));
+        btnPdf.addActionListener(e -> onCetakPdf());
+        actions.add(btnPdf);
+
+        UITheme.AnimatedButton approve = new UITheme.AnimatedButton("Setujui"); approve.setPreferredSize(new Dimension(100,34)); approve.addActionListener(e->onApprove());
+        UITheme.AnimatedButton reject = new UITheme.AnimatedButton("Tolak"); reject.setPreferredSize(new Dimension(100,34)); reject.addActionListener(e->onReject());
         actions.add(approve); actions.add(reject);
         right.add(actions, BorderLayout.SOUTH);
 
         root.add(left); root.add(right);
         return root;
+    }
+
+    private void onPrint() {
+        try {
+            if (tblDetail.getRowCount() > 0) tblDetail.print();
+            else javax.swing.JOptionPane.showMessageDialog(this, "Tidak ada data untuk dicetak.");
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private void onCetakPdf() {
+        int r = tblPengajuan.getSelectedRow();
+        if (r < 0) { javax.swing.JOptionPane.showMessageDialog(this, "Pilih mahasiswa terlebih dahulu."); return; }
+        var row = pengajuanModel.getRow(r);
+        
+        JFileChooser fc = new JFileChooser();
+        fc.setSelectedFile(new java.io.File("KSM_" + row.nim + ".pdf"));
+        if (fc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            try {
+                id.ac.kampus.frs.util.PdfUtil.exportFrs(fc.getSelectedFile(), "Semester " + row.semester, row.nim, row.nama, row.semester, detailModel.rows, row.totalSks, row.status);
+                javax.swing.JOptionPane.showMessageDialog(this, "PDF berhasil disimpan.");
+            } catch (Exception ex) {
+                javax.swing.JOptionPane.showMessageDialog(this, "Gagal menyimpan PDF: " + ex.getMessage(), "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 
     private void loadPengajuan(){
@@ -72,6 +121,7 @@ public class ModernDosenDashboardFrame extends BaseDashboardFrame {
         private java.util.List<id.ac.kampus.frs.dao.FRSDAO.PengajuanRow> rows=new java.util.ArrayList<>();
         void setData(java.util.List<id.ac.kampus.frs.dao.FRSDAO.PengajuanRow> l){ rows=l; fireTableDataChanged(); }
         int getIdFrs(int r){ return rows.get(r).idFrs; }
+        id.ac.kampus.frs.dao.FRSDAO.PengajuanRow getRow(int r){ return rows.get(r); }
         @Override public int getRowCount(){ return rows.size(); }
         @Override public int getColumnCount(){ return cols.length; }
         @Override public String getColumnName(int c){ return cols[c]; }

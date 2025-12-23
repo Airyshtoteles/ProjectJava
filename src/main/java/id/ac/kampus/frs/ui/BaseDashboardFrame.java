@@ -46,6 +46,8 @@ public class BaseDashboardFrame extends JFrame {
         SwingUtilities.invokeLater(() -> content.fadeIn(450));
     }
 
+    protected final JPanel headerActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+
     private JComponent buildHeader() {
         JPanel header = new JPanel(new BorderLayout()){
             @Override protected void paintComponent(Graphics g){
@@ -65,13 +67,13 @@ public class BaseDashboardFrame extends JFrame {
         left.add(lblPageTitle);
 
         // Kanan: user + logout
-        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10)); right.setOpaque(false);
+        headerActions.setOpaque(false);
         lblUser.setForeground(Color.WHITE); lblUser.setFont(UITheme.uiFont(Font.PLAIN, 14));
         UITheme.AnimatedButton btnLogout = new UITheme.AnimatedButton("Logout"); btnLogout.addActionListener(e -> onLogout());
         btnLogout.setPreferredSize(new Dimension(100, 32));
-        right.add(lblUser); right.add(btnLogout);
+        headerActions.add(lblUser); headerActions.add(btnLogout);
 
-        header.add(left, BorderLayout.WEST); header.add(right, BorderLayout.EAST);
+        header.add(left, BorderLayout.WEST); header.add(headerActions, BorderLayout.EAST);
         return header;
     }
 
