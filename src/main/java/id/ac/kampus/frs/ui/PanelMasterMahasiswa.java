@@ -46,12 +46,6 @@ public class PanelMasterMahasiswa extends JPanel {
 
         reload();
     }
-
-    /**
-     * Algoritma Linear Search untuk mencari mahasiswa berdasarkan NIM atau Nama.
-     * Kompleksitas waktu: O(n) dimana n adalah jumlah data mahasiswa.
-     * Kelebihan: Dapat mencari substring (partial match), tidak memerlukan data terurut.
-     */
     private void onSearch() {
         String keyword = tfSearch.getText().trim().toLowerCase();
         if (keyword.isEmpty()) {
