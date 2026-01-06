@@ -16,12 +16,26 @@ import java.util.List;
 public class PanelMasterMahasiswa extends JPanel {
     private final MahasiswaDAO dao = new MahasiswaDAO();
     private JTable table; private Model model;
+    private JTextField tfSearch;
 
     public PanelMasterMahasiswa() {
         setLayout(new BorderLayout());
         model = new Model();
         table = new JTable(model);
         add(new JScrollPane(table), BorderLayout.CENTER);
+
+        // Panel pencarian dengan Linear Search
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        searchPanel.add(new JLabel("Cari (NIM/Nama):"));
+        tfSearch = new JTextField(20);
+        searchPanel.add(tfSearch);
+        JButton btnSearch = new JButton("Cari");
+        JButton btnReset = new JButton("Reset");
+        btnSearch.addActionListener(e -> onSearch());
+        btnReset.addActionListener(e -> onResetSearch());
+        searchPanel.add(btnSearch);
+        searchPanel.add(btnReset);
+        add(searchPanel, BorderLayout.NORTH);
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton bAdd = new JButton("Tambah"); bAdd.addActionListener(e -> onAdd());
@@ -30,6 +44,54 @@ public class PanelMasterMahasiswa extends JPanel {
         actions.add(bAdd); actions.add(bEdit); actions.add(bDel);
         add(actions, BorderLayout.SOUTH);
 
+        reload();
+    }
+
+    /**
+     * Algoritma Linear Search untuk mencari mahasiswa berdasarkan NIM atau Nama.
+     * Kompleksitas waktu: O(n) dimana n adalah jumlah data mahasiswa.
+     * Kelebihan: Dapat mencari substring (partial match), tidak memerlukan data terurut.
+     */
+    private void onSearch() {
+        String keyword = tfSearch.getText().trim().toLowerCase();
+        if (keyword.isEmpty()) {
+            reload();
+            return;
+        }
+        try {
+            List<Mahasiswa> allData = dao.listAll();
+            List<Mahasiswa> hasil = linearSearch(allData, keyword);
+            model.setData(hasil);
+            if (hasil.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Data tidak ditemukan untuk: " + keyword, "Hasil Pencarian", JOptionPane.INFORMATION_MESSAGE);
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Gagal mencari", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Implementasi Linear Search Algorithm.
+     * Iterasi satu per satu melalui seluruh data dan mencocokkan keyword dengan NIM atau Nama.
+     * @param data List data mahasiswa yang akan dicari
+     * @param keyword Kata kunci pencarian (case-insensitive)
+     * @return List mahasiswa yang cocok dengan keyword
+     */
+    private List<Mahasiswa> linearSearch(List<Mahasiswa> data, String keyword) {
+        List<Mahasiswa> result = new ArrayList<>();
+        for (int i = 0; i < data.size(); i++) {
+            Mahasiswa m = data.get(i);
+            // Cek apakah NIM atau Nama mengandung keyword
+            if (m.getNim().toLowerCase().contains(keyword) || 
+                m.getNama().toLowerCase().contains(keyword)) {
+                result.add(m);
+            }
+        }
+        return result;
+    }
+
+    private void onResetSearch() {
+        tfSearch.setText("");
         reload();
     }
 
@@ -76,7 +138,7 @@ public class PanelMasterMahasiswa extends JPanel {
 
     private void onEdit() {
         int row = table.getSelectedRow(); if (row < 0) return;
-        Mahasiswa cur = model.rows.get(row);
+        Mahasiswa cur = model.getRow(row);
         JTextField tfNama = new JTextField(cur.getNama());
         JTextField tfJur = new JTextField(cur.getJurusan());
         JSpinner spSem = new JSpinner(new SpinnerNumberModel(cur.getSemester(),1,14,1));
@@ -132,7 +194,7 @@ public class PanelMasterMahasiswa extends JPanel {
 
     private void onDelete() {
         int row = table.getSelectedRow(); if (row < 0) return;
-        Mahasiswa cur = model.rows.get(row);
+        Mahasiswa cur = model.getRow(row);
         if (JOptionPane.showConfirmDialog(this, "Hapus mahasiswa " + cur.getNim() + "?", "Konfirmasi", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
             try { dao.delete(cur.getNim()); reload(); }
             catch (SQLException ex) { JOptionPane.showMessageDialog(this, ex.getMessage(), "Gagal hapus", JOptionPane.ERROR_MESSAGE); }
@@ -143,6 +205,8 @@ public class PanelMasterMahasiswa extends JPanel {
         private final String[] cols = {"NIM","Nama","Jurusan","Semester","ID User"};
         private List<Mahasiswa> rows = new ArrayList<>();
         public void setData(List<Mahasiswa> list) { this.rows = list; fireTableDataChanged(); }
+        public Mahasiswa getRow(int index) { return rows.get(index); }
+        public List<Mahasiswa> getRows() { return rows; }
         @Override public int getRowCount() { return rows.size(); }
         @Override public int getColumnCount() { return cols.length; }
         @Override public String getColumnName(int column) { return cols[column]; }
