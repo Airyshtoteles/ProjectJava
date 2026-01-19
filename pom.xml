@@ -27,6 +27,13 @@
     <lgooddatepicker.version>11.2.1</lgooddatepicker.version>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>jaspersoft-third-party</id>
+            <url>https://jaspersoft.jfrog.io/jaspersoft/third-party-ce-artifacts/</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <!-- MySQL JDBC driver -->
         <dependency>
@@ -74,7 +81,27 @@
             <version>${logback.version}</version>
         </dependency>
 
-        <!-- PDF export (optional feature) -->
+        <!-- JasperReports -->
+        <dependency>
+            <groupId>net.sf.jasperreports</groupId>
+            <artifactId>jasperreports</artifactId>
+            <version>6.21.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.lowagie</groupId>
+                    <artifactId>itext</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!-- iText (needed by JasperReports, but sometimes excluded to avoid conflict, here we add a compatible version if needed, or rely on transitive) -->
+        <!-- JasperReports 6.x usually depends on com.lowagie:itext:2.1.7.jsX -->
+        <dependency>
+            <groupId>com.lowagie</groupId>
+            <artifactId>itext</artifactId>
+            <version>2.1.7.js10</version>
+        </dependency>
+
+        <!-- PDF export (optional feature) - Keep for backward compatibility if needed, using Jasper mainly now -->
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>
