@@ -31,12 +31,8 @@ public class SettingsDAO {
     }
 
     public void save(Settings s) throws SQLException {
-        final boolean sqlite = DBConnection.isSQLite();
-        final String sql = sqlite
-                ? "INSERT INTO settings (id, semester_aktif, frs_aktif, tanggal_mulai, tanggal_selesai) VALUES (1,?,?,?,?) " +
-                  "ON CONFLICT(id) DO UPDATE SET semester_aktif=excluded.semester_aktif, frs_aktif=excluded.frs_aktif, tanggal_mulai=excluded.tanggal_mulai, tanggal_selesai=excluded.tanggal_selesai"
-                : "INSERT INTO settings (id, semester_aktif, frs_aktif, tanggal_mulai, tanggal_selesai) VALUES (1,?,?,?,?) " +
-                  "ON DUPLICATE KEY UPDATE semester_aktif=VALUES(semester_aktif), frs_aktif=VALUES(frs_aktif), tanggal_mulai=VALUES(tanggal_mulai), tanggal_selesai=VALUES(tanggal_selesai)";
+        String sql = "INSERT INTO settings (id, semester_aktif, frs_aktif, tanggal_mulai, tanggal_selesai) VALUES (1,?,?,?,?) " +
+                     "ON DUPLICATE KEY UPDATE semester_aktif=VALUES(semester_aktif), frs_aktif=VALUES(frs_aktif), tanggal_mulai=VALUES(tanggal_mulai), tanggal_selesai=VALUES(tanggal_selesai)";
         try (Connection con = DBConnection.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, s.getSemesterAktif());

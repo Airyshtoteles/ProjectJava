@@ -5,9 +5,11 @@ import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Properties;
 
+/**
+ * Database connection utility for MySQL (XAMPP).
+ */
 public class DBConnection {
     private static final Properties props = new Properties();
 
@@ -24,30 +26,14 @@ public class DBConnection {
     }
 
     public static Connection getConnection() throws SQLException {
-        String dbType = props.getProperty("db.type", "mysql").trim().toLowerCase();
-        if ("sqlite".equals(dbType)) {
-            String dbPath = props.getProperty("db.sqlite.path", "frs.db");
-            String url = "jdbc:sqlite:" + dbPath;
-            Connection con = DriverManager.getConnection(url);
-            try (Statement st = con.createStatement()) {
-                st.execute("PRAGMA foreign_keys=ON");
-            }
-            return con;
-        } else {
-            String host = props.getProperty("db.host");
-            String port = props.getProperty("db.port");
-            String db = props.getProperty("db.name");
-            String user = props.getProperty("db.user");
-            String pass = props.getProperty("db.password");
-            String params = props.getProperty("jdbc.params", "useSSL=false");
+        String host = props.getProperty("db.host", "127.0.0.1");
+        String port = props.getProperty("db.port", "3306");
+        String db = props.getProperty("db.name", "frs_db");
+        String user = props.getProperty("db.user", "root");
+        String pass = props.getProperty("db.password", "");
+        String params = props.getProperty("jdbc.params", "useSSL=false");
 
-            String url = String.format("jdbc:mysql://%s:%s/%s?%s", host, port, db, params);
-            return DriverManager.getConnection(url, user, pass);
-        }
-    }
-
-    public static boolean isSQLite() {
-        String dbType = props.getProperty("db.type", "mysql");
-        return "sqlite".equalsIgnoreCase(dbType);
+        String url = String.format("jdbc:mysql://%s:%s/%s?%s", host, port, db, params);
+        return DriverManager.getConnection(url, user, pass);
     }
 }

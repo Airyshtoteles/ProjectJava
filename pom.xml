@@ -21,7 +21,7 @@
         <poi.version>5.2.5</poi.version>
         <junit.version>5.10.2</junit.version>
         <mysql.connector.version>8.4.0</mysql.connector.version>
-        <sqlite.jdbc.version>3.45.3.0</sqlite.jdbc.version>
+
         <flatlaf.version>3.4.1</flatlaf.version>
         <flatlaf.extras.version>3.4.1</flatlaf.extras.version>
     <lgooddatepicker.version>11.2.1</lgooddatepicker.version>
@@ -42,12 +42,6 @@
             <version>${mysql.connector.version}</version>
         </dependency>
 
-        <!-- SQLite JDBC driver (for running with SQLite) -->
-        <dependency>
-            <groupId>org.xerial</groupId>
-            <artifactId>sqlite-jdbc</artifactId>
-            <version>${sqlite.jdbc.version}</version>
-        </dependency>
 
         <!-- FlatLaf for modern Swing look & feel -->
         <dependency>

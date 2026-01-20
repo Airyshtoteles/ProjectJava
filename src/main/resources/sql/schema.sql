@@ -4,7 +4,7 @@
 CREATE DATABASE IF NOT EXISTS frs_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE frs_db;
 
--- Users table: authentication + roles
+-- Users table: authentication + roles (must be first - referenced by others)
 CREATE TABLE IF NOT EXISTS user (
   id_user INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(64) NOT NULL UNIQUE,
@@ -13,7 +13,15 @@ CREATE TABLE IF NOT EXISTS user (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
--- Mahasiswa
+-- Dosen (must be before mahasiswa - referenced by nidn_wali)
+CREATE TABLE IF NOT EXISTS dosen (
+  nidn VARCHAR(20) PRIMARY KEY,
+  nama VARCHAR(100) NOT NULL,
+  id_user INT NOT NULL,
+  FOREIGN KEY (id_user) REFERENCES user(id_user) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- Mahasiswa (references both user and dosen)
 CREATE TABLE IF NOT EXISTS mahasiswa (
   nim VARCHAR(20) PRIMARY KEY,
   nama VARCHAR(100) NOT NULL,
@@ -23,14 +31,6 @@ CREATE TABLE IF NOT EXISTS mahasiswa (
   nidn_wali VARCHAR(20) NULL,
   FOREIGN KEY (id_user) REFERENCES user(id_user) ON DELETE CASCADE ON UPDATE CASCADE,
   FOREIGN KEY (nidn_wali) REFERENCES dosen(nidn) ON DELETE SET NULL ON UPDATE CASCADE
-) ENGINE=InnoDB;
-
--- Dosen
-CREATE TABLE IF NOT EXISTS dosen (
-  nidn VARCHAR(20) PRIMARY KEY,
-  nama VARCHAR(100) NOT NULL,
-  id_user INT NOT NULL,
-  FOREIGN KEY (id_user) REFERENCES user(id_user) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
 -- Matakuliah
@@ -97,14 +97,19 @@ CREATE TABLE IF NOT EXISTS log_aktivitas (
   FOREIGN KEY (id_user) REFERENCES user(id_user) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
--- Indexes for performance
-CREATE INDEX idx_user_role ON user(role);
-CREATE INDEX idx_mhs_semester ON mahasiswa(semester);
--- Ensure a user account is linked to at most one mahasiswa/dosen
-ALTER TABLE mahasiswa ADD UNIQUE KEY uk_mahasiswa_id_user (id_user);
-ALTER TABLE dosen ADD UNIQUE KEY uk_dosen_id_user (id_user);
-CREATE INDEX idx_frs_nim_semester ON frs(nim, semester);
-CREATE INDEX idx_jadwal_kode_mk ON jadwal(kode_mk);
+-- Permintaan ubah password (harus disetujui admin)
+CREATE TABLE IF NOT EXISTS password_change_request (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  new_password_hash VARCHAR(128) NOT NULL,
+  status ENUM('PENDING','APPROVED','REJECTED') NOT NULL DEFAULT 'PENDING',
+  requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  approved_by INT NULL,
+  approved_at TIMESTAMP NULL,
+  rejected_reason TEXT NULL,
+  FOREIGN KEY (user_id) REFERENCES user(id_user) ON DELETE CASCADE ON UPDATE CASCADE,
+  FOREIGN KEY (approved_by) REFERENCES user(id_user) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB;
 
 -- Settings (singleton row)
 CREATE TABLE IF NOT EXISTS settings (
@@ -115,3 +120,12 @@ CREATE TABLE IF NOT EXISTS settings (
   tanggal_selesai DATETIME NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
+
+-- Indexes for performance
+CREATE INDEX idx_user_role ON user(role);
+CREATE INDEX idx_mhs_semester ON mahasiswa(semester);
+-- Ensure a user account is linked to at most one mahasiswa/dosen
+ALTER TABLE mahasiswa ADD UNIQUE KEY uk_mahasiswa_id_user (id_user);
+ALTER TABLE dosen ADD UNIQUE KEY uk_dosen_id_user (id_user);
+CREATE INDEX idx_frs_nim_semester ON frs(nim, semester);
+CREATE INDEX idx_jadwal_kode_mk ON jadwal(kode_mk);
